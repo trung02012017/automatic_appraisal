@@ -110,29 +110,30 @@ def get_label_loan():
                                                     inserted_fullname,
                                                     inserted_id_number,
                                                     inserted_dob)
-                print(result_check_message)
-                return {
+                result = {
                     "info_check_result": result_check_message[1],
-                    "status": "200",
-                    "add_message": "Success",
+                    "response_code": "200",
+                    "mess": "Success",
                 }
+                logger.info(f'{str(data)} - {str(result)}')
+                return result
             except:
-                logger.error(f'{str(data)} - {str({"status_code": 500, "message": "Server Error"})}')
+                logger.error(f'{str(data)} - {str({"response_code_code": 500, "mess": "Server Error"})}')
                 print("SERVER ERROR")
                 return jsonify({
-                    "status_code": 500,
-                    "message": "Server Error"
+                    "response_code": 500,
+                    "mess": "Server Error"
                 })
     except:
         logger.error(f'{str({"status_code": 400, "message": "Bad Request"})}')
         print("BAD REQUEST")
         return jsonify({
-            "status_code": 400,
-            "message": "Bad Request"
+            "response_code": 400,
+            "mess": "Bad Request"
         })
     finally:
         delete_all_folder_files("./tmp")
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=11006, debug=True, threaded=False)
+    app.run(host="0.0.0.0", port=10200, debug=True, threaded=False)
