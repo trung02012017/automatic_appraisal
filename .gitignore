@@ -138,3 +138,4 @@ dmypy.json
 cython_debug/
 images/
 motor_detection/model/weights/
+1414_message_extract/log/

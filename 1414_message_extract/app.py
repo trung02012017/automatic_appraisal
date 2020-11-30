@@ -15,12 +15,13 @@ from main import main
 
 app = Flask(__name__)
 app.register_blueprint(eureka_bp)
-app.config["SERVICE_NAME"] = "1414_message_validate"
+app.config["SERVICE_NAME"] = "1414_MESSAGE_VALIDATE"
 app.config["EUREKA_SERVICE_URL"] = "http://172.16.10.111:8761"
-app.config["EUREKA_INSTANCE_PORT"] = 11006
+app.config["EUREKA_INSTANCE_PORT"] = 10200
+app.config["EUREKA_INSTANCE_HOSTNAME"] = "172.16.10.111"
 app.config["EUREKA_HEARTBEAT"] = 60
 eureka = Eureka(app)
-eureka.register_service(name="1414-message-validate-service", vip_address="validate-message-service")
+eureka.register_service(name="1414_MESSAGE_VALIDATE", vip_address="1414_MESSAGE_VALIDATE")
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -93,6 +94,11 @@ def main_compare(image_url, inserted_fullname, inserted_id_number, inserted_dob)
         return compare_results, True
     else:
         return compare_results, None
+
+
+@app.route('/health_check')
+def health_check():
+    return str(0)
 
 
 @app.route('/check_info_message', methods=['POST'])

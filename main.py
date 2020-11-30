@@ -328,6 +328,7 @@ if __name__ == '__main__':
                      111, 112, 113, 114, 115, 134)
     other_types = (23, 126, 127, 128, 129, 130, 131, 132, 142, 143, 144, 145, 146)
     vr = (12, 35, 70)
+    vehicle_types = 141
     conn_los = connect_los_sql_db()
 
     id_card_query = "select loan.LoanBriefId as loan_id, " \
@@ -355,8 +356,6 @@ if __name__ == '__main__':
 
         image_url = get_url(file_path, s3_status, mecash_id)
         print(image_url)
-        if i == 200:
-            break
         # download_img_by_url(image_url, "/home/trungtq/Documents/automatic_disbursement/images/vehicle_registration")
 
 
