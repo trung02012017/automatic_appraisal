@@ -91,9 +91,19 @@ def main_compare(image_url, inserted_fullname, inserted_id_number, inserted_dob)
         compare_results.append(False)
 
     if all(compare is True for compare in compare_results):
-        return compare_results, True, extract_results
+        returned_compare_results = {
+            "same_fullname": compare_results[0],
+            "same_id_number": compare_results[1],
+            "same_dob": compare_results[2]
+        }
+        return returned_compare_results, True, extract_results
     else:
-        return compare_results, None, extract_results
+        returned_compare_results = {
+            "same_fullname": compare_results[0],
+            "same_id_number": compare_results[1],
+            "same_dob": compare_results[2]
+        }
+        return returned_compare_results, None, extract_results
 
 
 @app.route('/health_check')
@@ -118,6 +128,7 @@ def get_label_loan():
                                                     inserted_dob)
                 result = {
                     "info_check_result": result_check_message[1],
+                    "compare_results": result_check_message[0],
                     "extracted_info": result_check_message[2],
                     "response_code": "200",
                     "mess": "Success",
