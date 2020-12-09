@@ -3,13 +3,13 @@ import requests
 
 def get_result_motor_api(req):
     try:
-        url = "http://172.16.10.111:15008/image/motor/check"
+        url = "http://172.16.10.111:15004/image/motor/check"
 
         headers = {
             'Content-Type': 'application/json'
         }
 
-        response = requests.request("POST", url, headers=headers, json=req)
+        response = requests.request("POST", url, headers=headers, json={"image": req})
 
         return response.json()
     except Exception as e:
@@ -18,7 +18,6 @@ def get_result_motor_api(req):
 
 
 def process_response(res):
-
     if res is None:
         return None
     else:
@@ -33,6 +32,6 @@ def process_response(res):
                 plates.append(r['plate'])
 
         if count_moto >= 2:
-            return True, plates
+            return True, plates, res
         else:
-            return False, plates
+            return False, plates, res

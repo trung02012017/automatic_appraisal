@@ -15,7 +15,7 @@ app.config["EUREKA_HEARTBEAT"] = 60
 eureka = Eureka(app)
 eureka.register_service(name="motor_detection", vip_address="motor_detection")
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 file_handler = logging.FileHandler('log/api.log')
@@ -38,7 +38,7 @@ def get_label_loan():
 
             try:
                 req = data['image']
-                result_check_motor, plates = process_response(get_result_motor_api(data))
+                result_check_motor, plates, source_result = process_response(get_result_motor_api(req))
                 result = {
                     "info_check_motor": {
                         "have_motor": result_check_motor,
@@ -46,17 +46,20 @@ def get_label_loan():
                     },
                     "response_code": "200",
                     "mess": "Success",
+                    "result_check_from_source": source_result
                 }
                 logger.info(f'{str(data)} - {str(result)}')
                 return result
-            except:
+            except Exception as e:
+                print(e)
                 logger.error(f'{str(data)} - {str({"response_code_code": 500, "mess": "Server Error"})}')
                 print("SERVER ERROR")
                 return jsonify({
                     "response_code": 500,
                     "mess": "Server Error"
                 })
-    except:
+    except Exception as e:
+        print(e)
         logger.error(f'{str({"status_code": 400, "message": "Bad Request"})}')
         print("BAD REQUEST")
         return jsonify({

@@ -23,7 +23,7 @@ app.config["EUREKA_HEARTBEAT"] = 60
 eureka = Eureka(app)
 eureka.register_service(name="1414_MESSAGE_VALIDATE", vip_address="1414_MESSAGE_VALIDATE")
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 file_handler = logging.FileHandler('log/api.log')
@@ -91,9 +91,9 @@ def main_compare(image_url, inserted_fullname, inserted_id_number, inserted_dob)
         compare_results.append(False)
 
     if all(compare is True for compare in compare_results):
-        return compare_results, True
+        return compare_results, True, extract_results
     else:
-        return compare_results, None
+        return compare_results, None, extract_results
 
 
 @app.route('/health_check')
@@ -118,6 +118,7 @@ def get_label_loan():
                                                     inserted_dob)
                 result = {
                     "info_check_result": result_check_message[1],
+                    "extracted_info": result_check_message[2],
                     "response_code": "200",
                     "mess": "Success",
                 }

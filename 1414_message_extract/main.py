@@ -170,20 +170,20 @@ def main(im):
     }
 
 
-if __name__ == '__main__':
-
-    folder_path = "/home/trungtq/Documents/automatic_disbursement/images/other/1414_message"
-    file_paths = [os.path.join(folder_path, file_path) for file_path in os.listdir(folder_path)]
-
-    for file_path in file_paths:
-        image = cv2.imread("/home/trungtq/Documents/automatic_disbursement/images/other/1414_message/"
-                           "7a0a1612-9d65-498a-bd4a-0938533bd882.jpeg")
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        print(os.path.basename(file_path))
-
-        extracted_text = extract_text(image)
-        print(" ".join(extracted_text))
-        print(extract_id_card_new(extracted_text))
-
-        print("======")
-        break
+# if __name__ == '__main__':
+#
+#     folder_path = "/home/trungtq/Documents/automatic_disbursement/images/other/1414_message"
+#     file_paths = [os.path.join(folder_path, file_path) for file_path in os.listdir(folder_path)]
+#
+#     for file_path in file_paths:
+#         image = cv2.imread("/home/trungtq/Documents/automatic_disbursement/images/other/1414_message/"
+#                            "7a0a1612-9d65-498a-bd4a-0938533bd882.jpeg")
+#         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+#         print(os.path.basename(file_path))
+#
+#         extracted_text = extract_text(image)
+#         print(" ".join(extracted_text))
+#         print(extract_id_card_new(extracted_text))
+#
+#         print("======")
+#         break

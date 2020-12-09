@@ -342,7 +342,7 @@ if __name__ == '__main__':
                     "and IsDeleted = 0 " \
                     "and CreateAt > '2020-09-01' " \
                     "and CreateAt < '2020-12-01' " \
-                    f"and  TypeId in {vr}) loan_file " \
+                    f"and  TypeId in {id_card_types}) loan_file " \
                     "on loan.LoanBriefId = loan_file.LoanBriefId " \
                     "order by  loan.LoanBriefId desc" \
 
