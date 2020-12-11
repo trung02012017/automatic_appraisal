@@ -130,7 +130,7 @@ def get_label_loan():
                     "info_check_result": result_check_message[1],
                     "compare_results": result_check_message[0],
                     "extracted_info": result_check_message[2],
-                    "response_code": "200",
+                    "response_code": 200,
                     "mess": "Success",
                 }
                 logger.info(f'{str(data)} - {str(result)}')
