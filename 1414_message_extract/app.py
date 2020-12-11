@@ -69,7 +69,7 @@ def main_compare(image_url, inserted_fullname, inserted_id_number, inserted_dob)
     issue_date = extract_results['issue_date']
 
     if all(info == '' for info in [fullname, id_number, dob, issue_date]):
-        return compare_results, False
+        return compare_results, False, {'fullname': '', 'id_number': '', 'dob': '', 'issue_date': ''}
 
     # compare fullname
     inserted_fullname = unidecode(inserted_fullname).strip().title()
@@ -135,7 +135,8 @@ def get_label_loan():
                 }
                 logger.info(f'{str(data)} - {str(result)}')
                 return result
-            except:
+            except Exception as e:
+                print(e)
                 logger.error(f'{str(data)} - {str({"response_code_code": 500, "mess": "Server Error"})}')
                 print("SERVER ERROR")
                 return jsonify({
