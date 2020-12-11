@@ -131,14 +131,22 @@ def extract_date(extracted_text):
 
 def extract_id_card_new(extracted_text):
     extracted_text = " ".join(extracted_text)
-    id_numbers = re.findall(regex['id_card'], extracted_text)
-    print(id_numbers)
 
+    id_numbers = re.findall(r"(cuoc:\s\d{9}[,;.]) | (cuoc:\s\d{12}[,;.])", extracted_text)
     if len(id_numbers) == 0:
-        return ""
+        id_numbers = re.findall(regex['id_card'], extracted_text)
+        print(id_numbers)
+
+        if len(id_numbers) == 0:
+            return ""
+        else:
+            id_number = [_ for _ in id_numbers[0] if len(_) > 0][0]
+            id_number = id_number.translate(str.maketrans('', '', string.punctuation)).replace(" ", "")
+            return id_number
     else:
         id_number = [_ for _ in id_numbers[-1] if len(_) > 0][0]
         id_number = id_number.translate(str.maketrans('', '', string.punctuation)).replace(" ", "")
+        id_number = "".join([c for c in id_number if c.isdigit()])
         return id_number
 
 
@@ -160,7 +168,7 @@ def main(im):
     extracted_dates = extract_date(extracted_text)
     dob = extracted_dates[0]
     issue_date = extracted_dates[1]
-    id_card = extract_id_card(extracted_text)
+    id_card = extract_id_card_new(extracted_text)
 
     return {
         "fullname": fullname,
