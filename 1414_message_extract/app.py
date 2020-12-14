@@ -63,7 +63,7 @@ def main_compare(image_url, inserted_fullname, inserted_id_number, inserted_dob)
 
     extract_results = main(image)
     print(extract_results)
-    fullname = extract_results['fullname']
+    fullname = extract_results['fullname'].title()
     id_number = extract_results['id_number']
     dob = extract_results['dob']
     issue_date = extract_results['issue_date']

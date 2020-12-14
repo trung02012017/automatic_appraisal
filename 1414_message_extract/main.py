@@ -11,11 +11,10 @@ from datetime import datetime
 
 
 regex = {
-    "id_card": r"([\s:o]\d{9}[,;.])|([\s:o]\d{12}[,;.])",
     "date": r"\d{1,2}/\d{2}/\d{4}",
-    "fullname": [r"[\s:]*Ho\sten:\s*[AĂÂÁẮẤÀẰẦẢẲẨÃẴẪẠẶẬĐEÊÉẾÈỀẺỂẼỄẸỆIÍÌỈĨỊOÔƠÓỐỚÒỒỜỎỔỞÕỖỠỌỘỢUƯÚỨÙỪỦỬŨỮỤỰYÝỲỶỸỴ"
+    "fullname": [r"[\s:]*Ho\sten[:]\s*['AĂÂÁẮẤÀẰẦẢẲẨÃẴẪẠẶẬĐEÊÉẾÈỀẺỂẼỄẸỆIÍÌỈĨỊOÔƠÓỐỚÒỒỜỎỔỞÕỖỠỌỘỢUƯÚỨÙỪỦỬŨỮỤỰYÝỲỶỸỴ"
                  r"aăâáắấàằầảẳẩãẵẫạặậđeêéếèềẻểẽễẹệiíìỉĩịoôơóốớòồờỏổởõỗỡọộợuưúứùừủửũữụựyýỳỷỹỵA-Zaa-z\s]+[,.;(]{0,1}\s*",
-                 r"[\s:]*Ho\sva\sten:\s*[AĂÂÁẮẤÀẰẦẢẲẨÃẴẪẠẶẬĐEÊÉẾÈỀẺỂẼỄẸỆIÍÌỈĨỊOÔƠÓỐỚÒỒỜỎỔỞÕỖỠỌỘỢUƯÚỨÙỪỦỬŨỮỤỰYÝỲỶỸỴ"
+                 r"[\s:]*Ho\sva\sten[:]\s*['AĂÂÁẮẤÀẰẦẢẲẨÃẴẪẠẶẬĐEÊÉẾÈỀẺỂẼỄẸỆIÍÌỈĨỊOÔƠÓỐỚÒỒỜỎỔỞÕỖỠỌỘỢUƯÚỨÙỪỦỬŨỮỤỰYÝỲỶỸỴ"
                  r"aăâáắấàằầảẳẩãẵẫạặậđeêéếèềẻểẽễẹệiíìỉĩịoôơóốớòồờỏổởõỗỡọộợuưúứùừủửũữụựyýỳỷỹỵA-Zaa-z\s]+[,.;(]{0,1}\s*"]
 }
 
@@ -36,33 +35,48 @@ def rotate_img(im):
     return rotated
 
 
-def pre_process(im):
-    gray = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
-    im = cv2.GaussianBlur(gray, (1, 1), 0)
+def pre_process_1(im):
+    im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
+    # im = cv2.GaussianBlur(im, (1, 1), 0)
     # (thresh, im) = cv2.threshold(im, 0, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY)
     im = cv2.adaptiveThreshold(im, maxValue=255, adaptiveMethod=cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                thresholdType=cv2.THRESH_BINARY, blockSize=25, C=20)
-    im = rotate_img(im)
+    # im = rotate_img(im)
 
     return im
 
 
-def extract_text(im):
-    im = pre_process(im)
+def pre_process_2(im):
+    return im
+
+
+def extract_text_1(im):
+    im = pre_process_1(im)
     text_preprocessed = pytesseract.image_to_string(im, lang='vie', config='--oem 3 --psm 1')
     final_text_preprocessed = [line for line in text_preprocessed.split('\n') if line.strip() != '']
 
-    return final_text_preprocessed
+    return final_text_preprocessed, im
+
+
+def extract_text_2(im):
+    im = pre_process_2(im)
+    text_preprocessed = pytesseract.image_to_string(im, lang='vie', config='--oem 3 --psm 1')
+    final_text_preprocessed = [line for line in text_preprocessed.split('\n') if line.strip() != '']
+
+    return final_text_preprocessed, im
 
 
 def extract_full_name(extracted_text):
-    text = unidecode(" ".join(extracted_text))
+    text = unidecode(" ".join(extracted_text)).replace(";", ":")
 
     for re_fullname in regex['fullname']:
         fullname_string = re.findall(re_fullname, text)
         if len(fullname_string) == 0:
             continue
-        fullname = fullname_string[-1].split(":")[1].strip().title()
+        fullname = fullname_string[-1].strip().split(":")[-1].strip()
+        if len(fullname.strip()) == 0:
+            continue
+        fullname = " ".join([w for w in fullname.split(" ") if w[0].isupper()])
         fullname = unidecode(fullname).translate(str.maketrans('', '', string.punctuation))
         return fullname
     return ""
@@ -70,7 +84,7 @@ def extract_full_name(extracted_text):
 
 def extract_date_new(extracted_text):
     final_dates = []
-    extracted_text = " ".join(extracted_text)
+    extracted_text = " ".join(extracted_text).replace(" ", "")
     extracted_dates = re.findall(regex['date'], extracted_text)
     extracted_dates = list(reversed(extracted_dates))
 
@@ -128,12 +142,14 @@ def extract_date(extracted_text):
 
 
 def extract_id_card_new(extracted_text):
-    extracted_text = " ".join(extracted_text)
+    extracted_text = " ".join(extracted_text).replace("'", "")
 
-    id_numbers = re.findall(r"(cuoc:\s\d{9}[,;.]) | (cuoc:\s\d{12}[,;.])", extracted_text)
+    regex_1_id = r"(cuoc[:]*\d{12}[,;.]*)|(cuoc[:]*\d{9}[,;.]*)|(CMT[:]*\d{12}[,;.]*)" \
+                 r"|(CMT[:]*\d{9}[,;.]*)|(to[:]*\d{12}[,;.]*)|(to[:]*\d{9}[,;.]*)"
+    regex_2_id = r"([\s:o]\d{12}[,;.])|([\s:o]\d{9}[,;.])"
+    id_numbers = re.findall(regex_1_id, extracted_text.replace(" ", ""))
     if len(id_numbers) == 0:
-        id_numbers = re.findall(regex['id_card'], extracted_text)
-
+        id_numbers = re.findall(regex_2_id, extracted_text)
         if len(id_numbers) == 0:
             return ""
         else:
@@ -161,36 +177,40 @@ def extract_id_card(extracted_text):
 
 
 def main(im):
-    extracted_text = extract_text(im)
-    print(extracted_text)
-    fullname = extract_full_name(extracted_text)
-    extracted_dates = extract_date(extracted_text)
-    dob = extracted_dates[0]
-    issue_date = extracted_dates[1]
-    id_card = extract_id_card_new(extracted_text)
+
+    # preprocess 1
+    extracted_text_1, im_1 = extract_text_1(im)
+    fullname_1 = extract_full_name(extracted_text_1)
+    extracted_dates_1 = extract_date_new(extracted_text_1)
+    dob_1 = extracted_dates_1[0]
+    issue_date_1 = extracted_dates_1[1]
+    id_card_1 = extract_id_card_new(extracted_text_1)
+
+    # preprocess 2
+    extracted_text_2, im_2 = extract_text_2(im)
+    fullname_2 = extract_full_name(extracted_text_2)
+    extracted_dates_2 = extract_date_new(extracted_text_2)
+    dob_2 = extracted_dates_2[0]
+    issue_date_2 = extracted_dates_2[1]
+    id_card_2 = extract_id_card_new(extracted_text_2)
+
+    print(extracted_text_1)
+    print(extracted_text_2)
 
     return {
-        "fullname": fullname,
-        "id_number": id_card,
-        "dob": dob,
-        "issue_date": issue_date
+        "fullname": fullname_1 if len(fullname_1) >= len(fullname_2) else fullname_2,
+        "id_number": id_card_1 if len(id_card_1) >= len(id_card_2) else id_card_2,
+        "dob": dob_1 if len(dob_1) >= len(dob_2) else dob_2,
+        "issue_date": issue_date_1 if len(issue_date_1) >= len(issue_date_2) else issue_date_2
     }
 
 
 # if __name__ == '__main__':
 #
-#     folder_path = "/home/trungtq/Documents/automatic_disbursement/images/other/1414_message"
-#     file_paths = [os.path.join(folder_path, file_path) for file_path in os.listdir(folder_path)]
+#     from pprint import pprint
 #
-#     for file_path in file_paths:
-#         image = cv2.imread("/home/trungtq/Documents/automatic_disbursement/images/other/1414_message/"
-#                            "7a0a1612-9d65-498a-bd4a-0938533bd882.jpeg")
-#         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-#         print(os.path.basename(file_path))
-#
-#         extracted_text = extract_text(image)
-#         print(" ".join(extracted_text))
-#         print(extract_id_card_new(extracted_text))
-#
-#         print("======")
-#         break
+#     im = cv2.imread("/home/trungtq/Desktop/failed_images/9137b3b7-d75f-4c2a-9a51-6f95cc3b0cc6.jpg")
+#     extracted_info, im = main(im)
+#     pprint(extracted_info)
+#     cv2.imshow("a", im)
+#     cv2.waitKey(0)
