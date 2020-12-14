@@ -11,14 +11,12 @@ from datetime import datetime
 
 
 regex = {
-    "id_card": r"([\s:]\d{9}[,;.])|([\s:]\d{12}[,;.])",
+    "id_card": r"([\s:o]\d{9}[,;.])|([\s:o]\d{12}[,;.])",
     "date": r"\d{1,2}/\d{2}/\d{4}",
-    "fullname": [r"\s*Ho\sten: [AĂÂÁẮẤÀẰẦẢẲẨÃẴẪẠẶẬĐEÊÉẾÈỀẺỂẼỄẸỆIÍÌỈĨỊOÔƠÓỐỚÒỒỜỎỔỞÕỖỠỌỘỢUƯÚỨÙỪỦỬŨỮỤỰYÝỲỶỸỴ"
-                 r"aăâáắấàằầảẳẩãẵẫạặậđeêéếèềẻểẽễẹệiíìỉĩịoôơóốớòồờỏổởõỗỡọộợuưúứùừủửũữụựyýỳỷỹỵA-Zaa-z\s]+[,.;]{0,1}\s",
-                 r"\s*Họ\sten: [AĂÂÁẮẤÀẰẦẢẲẨÃẴẪẠẶẬĐEÊÉẾÈỀẺỂẼỄẸỆIÍÌỈĨỊOÔƠÓỐỚÒỒỜỎỔỞÕỖỠỌỘỢUƯÚỨÙỪỦỬŨỮỤỰYÝỲỶỸỴ"
-                 r"aăâáắấàằầảẳẩãẵẫạặậđeêéếèềẻểẽễẹệiíìỉĩịoôơóốớòồờỏổởõỗỡọộợuưúứùừủửũữụựyýỳỷỹỵA-Zaa-z\s]+[,.;]{0,1}\s",
-                 r"\s*Ho\sva\sten: [AĂÂÁẮẤÀẰẦẢẲẨÃẴẪẠẶẬĐEÊÉẾÈỀẺỂẼỄẸỆIÍÌỈĨỊOÔƠÓỐỚÒỒỜỎỔỞÕỖỠỌỘỢUƯÚỨÙỪỦỬŨỮỤỰYÝỲỶỸỴ"
-                 r"aăâáắấàằầảẳẩãẵẫạặậđeêéếèềẻểẽễẹệiíìỉĩịoôơóốớòồờỏổởõỗỡọộợuưúứùừủửũữụựyýỳỷỹỵA-Zaa-z\s]+[,.;]{0,1}\s"]
+    "fullname": [r"[\s:]*Ho\sten:\s*[AĂÂÁẮẤÀẰẦẢẲẨÃẴẪẠẶẬĐEÊÉẾÈỀẺỂẼỄẸỆIÍÌỈĨỊOÔƠÓỐỚÒỒỜỎỔỞÕỖỠỌỘỢUƯÚỨÙỪỦỬŨỮỤỰYÝỲỶỸỴ"
+                 r"aăâáắấàằầảẳẩãẵẫạặậđeêéếèềẻểẽễẹệiíìỉĩịoôơóốớòồờỏổởõỗỡọộợuưúứùừủửũữụựyýỳỷỹỵA-Zaa-z\s]+[,.;(]{0,1}\s*",
+                 r"[\s:]*Ho\sva\sten:\s*[AĂÂÁẮẤÀẰẦẢẲẨÃẴẪẠẶẬĐEÊÉẾÈỀẺỂẼỄẸỆIÍÌỈĨỊOÔƠÓỐỚÒỒỜỎỔỞÕỖỠỌỘỢUƯÚỨÙỪỦỬŨỮỤỰYÝỲỶỸỴ"
+                 r"aăâáắấàằầảẳẩãẵẫạặậđeêéếèềẻểẽễẹệiíìỉĩịoôơóốớòồờỏổởõỗỡọộợuưúứùừủửũữụựyýỳỷỹỵA-Zaa-z\s]+[,.;(]{0,1}\s*"]
 }
 
 
@@ -41,16 +39,16 @@ def rotate_img(im):
 def pre_process(im):
     gray = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
     im = cv2.GaussianBlur(gray, (1, 1), 0)
-    (thresh, im) = cv2.threshold(im, 0, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY)
-    # im = cv2.adaptiveThreshold(im, maxValue=255, adaptiveMethod=cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-    #                            thresholdType=cv2.THRESH_BINARY, blockSize=25, C=20)
+    # (thresh, im) = cv2.threshold(im, 0, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY)
+    im = cv2.adaptiveThreshold(im, maxValue=255, adaptiveMethod=cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                               thresholdType=cv2.THRESH_BINARY, blockSize=25, C=20)
     im = rotate_img(im)
 
     return im
 
 
 def extract_text(im):
-    # im = pre_process(im)
+    im = pre_process(im)
     text_preprocessed = pytesseract.image_to_string(im, lang='vie', config='--oem 3 --psm 1')
     final_text_preprocessed = [line for line in text_preprocessed.split('\n') if line.strip() != '']
 
@@ -58,7 +56,7 @@ def extract_text(im):
 
 
 def extract_full_name(extracted_text):
-    text = " ".join(extracted_text)
+    text = unidecode(" ".join(extracted_text))
 
     for re_fullname in regex['fullname']:
         fullname_string = re.findall(re_fullname, text)
@@ -135,13 +133,13 @@ def extract_id_card_new(extracted_text):
     id_numbers = re.findall(r"(cuoc:\s\d{9}[,;.]) | (cuoc:\s\d{12}[,;.])", extracted_text)
     if len(id_numbers) == 0:
         id_numbers = re.findall(regex['id_card'], extracted_text)
-        print(id_numbers)
 
         if len(id_numbers) == 0:
             return ""
         else:
             id_number = [_ for _ in id_numbers[0] if len(_) > 0][0]
             id_number = id_number.translate(str.maketrans('', '', string.punctuation)).replace(" ", "")
+            id_number = "".join([c for c in id_number if c.isdigit()])
             return id_number
     else:
         id_number = [_ for _ in id_numbers[-1] if len(_) > 0][0]
@@ -157,6 +155,7 @@ def extract_id_card(extracted_text):
         if len(id_number) > 0:
             id_number = [_ for _ in id_number[0] if len(_) > 0][0]
             id_number = id_number.translate(str.maketrans('', '', string.punctuation)).replace(" ", "")
+            id_number = "".join([c for c in id_number if not c.isalpha()])
             return id_number
     return ""
 
