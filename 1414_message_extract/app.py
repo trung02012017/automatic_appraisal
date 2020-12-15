@@ -69,7 +69,7 @@ def main_compare(image_url, inserted_fullname, inserted_id_number, inserted_dob)
     issue_date = extract_results['issue_date']
 
     if all(info == '' for info in [fullname, id_number, dob, issue_date]):
-        return compare_results, False, {'fullname': '', 'id_number': '', 'dob': '', 'issue_date': ''}
+        return None, False, {'fullname': '', 'id_number': '', 'dob': '', 'issue_date': ''}
 
     # compare fullname
     inserted_fullname = unidecode(inserted_fullname).strip().title()
