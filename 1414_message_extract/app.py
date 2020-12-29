@@ -17,14 +17,14 @@ from flask_eureka import Eureka, eureka_bp
 from main import main
 
 app = Flask(__name__)
-# app.register_blueprint(eureka_bp)
-# app.config["SERVICE_NAME"] = "1414_MESSAGE_VALIDATE"
-# app.config["EUREKA_SERVICE_URL"] = "http://172.16.10.111:8761"
-# app.config["EUREKA_INSTANCE_PORT"] = 10200
-# app.config["EUREKA_INSTANCE_HOSTNAME"] = "172.16.10.111"
-# app.config["EUREKA_HEARTBEAT"] = 60
-# eureka = Eureka(app)
-# eureka.register_service(name="1414_MESSAGE_VALIDATE", vip_address="1414_MESSAGE_VALIDATE")
+app.register_blueprint(eureka_bp)
+app.config["SERVICE_NAME"] = "1414_MESSAGE_VALIDATE"
+app.config["EUREKA_SERVICE_URL"] = "http://172.16.10.111:8761"
+app.config["EUREKA_INSTANCE_PORT"] = 10200
+app.config["EUREKA_INSTANCE_HOSTNAME"] = "172.16.10.111"
+app.config["EUREKA_HEARTBEAT"] = 60
+eureka = Eureka(app)
+eureka.register_service(name="1414_MESSAGE_VALIDATE", vip_address="1414_MESSAGE_VALIDATE")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -89,6 +89,7 @@ def main_compare(image_url, inserted_fullname, inserted_id_number, inserted_dob)
     # image = scale_image(image)
 
     extract_results = main(image, image_url, message_extractor, info_extractor)
+    print(extract_results)
     fullname = extract_results['fullname'].title()
     id_number = extract_results['id_number']
     dob = extract_results['dob']
@@ -139,45 +140,45 @@ def health_check():
 
 @app.route('/check_info_message', methods=['POST'])
 def get_label_loan():
-    # try:
-    if request.method == 'POST':
-        data = request.get_json()
-        img_url = data["image_url"]
-        inserted_fullname = data['fullname']
-        inserted_id_number = data['id_number']
-        inserted_dob = data['date_of_birth']
+    try:
+        if request.method == 'POST':
+            data = request.get_json()
+            img_url = data["image_url"]
+            inserted_fullname = data['fullname']
+            inserted_id_number = data['id_number']
+            inserted_dob = data['date_of_birth']
 
-        # try:
-        result_check_message = main_compare(img_url,
-                                            inserted_fullname,
-                                            inserted_id_number,
-                                            inserted_dob)
-        result = {
-            "info_check_result": result_check_message[1],
-            "compare_results": result_check_message[0],
-            "extracted_info": result_check_message[2],
-            "response_code": 200,
-            "mess": "Success",
-        }
-        logger.info(f'{str(data)} - {str(result)}')
-        return result
-            # except Exception as e:
-            #     print(e)
-            #     logger.error(f'{str(data)} - {str({"response_code_code": 500, "mess": "Server Error"})}')
-            #     print("SERVER ERROR")
-            #     return jsonify({
-            #         "response_code": 500,
-            #         "mess": "Server Error"
-            #     })
-    # except:
-    #     logger.error(f'{str({"status_code": 400, "message": "Bad Request"})}')
-    #     print("BAD REQUEST")
-    #     return jsonify({
-    #         "response_code": 400,
-    #         "mess": "Bad Request"
-    #     })
-    # finally:
-    #     delete_all_folder_files("./tmp")
+            try:
+                result_check_message = main_compare(img_url,
+                                                    inserted_fullname,
+                                                    inserted_id_number,
+                                                    inserted_dob)
+                result = {
+                    "info_check_result": result_check_message[1],
+                    "compare_results": result_check_message[0],
+                    "extracted_info": result_check_message[2],
+                    "response_code": 200,
+                    "mess": "Success",
+                }
+                logger.info(f'{str(data)} - {str(result)}')
+                return result
+            except Exception as e:
+                print(e)
+                logger.error(f'{str(data)} - {str({"response_code_code": 500, "mess": "Server Error"})}')
+                print("SERVER ERROR")
+                return jsonify({
+                    "response_code": 500,
+                    "mess": "Server Error"
+                })
+    except:
+        logger.error(f'{str({"status_code": 400, "message": "Bad Request"})}')
+        print("BAD REQUEST")
+        return jsonify({
+            "response_code": 400,
+            "mess": "Bad Request"
+        })
+    finally:
+        delete_all_folder_files("./tmp")
 
 
 if __name__ == '__main__':
