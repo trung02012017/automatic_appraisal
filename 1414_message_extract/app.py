@@ -7,6 +7,9 @@ import editdistance
 
 import numpy as np
 
+from components import MessageExtractor, InfoExtractor
+
+from datetime import datetime
 from unidecode import unidecode
 from flask import Flask, jsonify, render_template, request, url_for
 from flask_eureka import Eureka, eureka_bp
@@ -14,14 +17,14 @@ from flask_eureka import Eureka, eureka_bp
 from main import main
 
 app = Flask(__name__)
-app.register_blueprint(eureka_bp)
-app.config["SERVICE_NAME"] = "1414_MESSAGE_VALIDATE"
-app.config["EUREKA_SERVICE_URL"] = "http://172.16.10.111:8761"
-app.config["EUREKA_INSTANCE_PORT"] = 10200
-app.config["EUREKA_INSTANCE_HOSTNAME"] = "172.16.10.111"
-app.config["EUREKA_HEARTBEAT"] = 60
-eureka = Eureka(app)
-eureka.register_service(name="1414_MESSAGE_VALIDATE", vip_address="1414_MESSAGE_VALIDATE")
+# app.register_blueprint(eureka_bp)
+# app.config["SERVICE_NAME"] = "1414_MESSAGE_VALIDATE"
+# app.config["EUREKA_SERVICE_URL"] = "http://172.16.10.111:8761"
+# app.config["EUREKA_INSTANCE_PORT"] = 10200
+# app.config["EUREKA_INSTANCE_HOSTNAME"] = "172.16.10.111"
+# app.config["EUREKA_HEARTBEAT"] = 60
+# eureka = Eureka(app)
+# eureka.register_service(name="1414_MESSAGE_VALIDATE", vip_address="1414_MESSAGE_VALIDATE")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,10 +35,13 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
+message_extractor = MessageExtractor("http://172.16.10.111:15004/image/message/detect")
+info_extractor = InfoExtractor()
+
 
 def download_img(image_url):
     img_name = image_url.split("/")[-1]
-    img_data = requests.get(image_url).content
+    img_data = requests.get(image_url, stream=True).content
     img_path = os.path.join(os.path.dirname(__file__), f"tmp/{img_name}")
     with open(img_path, 'wb') as handler:
         handler.write(img_data)
@@ -54,15 +60,35 @@ def delete_all_folder_files(folder_path):
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 
+def scale_image(im):
+    w, h, c = im.shape
+    std_len = 1000
+    scale = std_len / max([w, h])
+
+    if scale >= 1:
+        w_new = w
+        h_new = h
+    else:
+        w_new = int(w * scale)
+        h_new = int(h * scale)
+
+    im = cv2.resize(im, (w_new, h_new))
+    return im
+
+
 def main_compare(image_url, inserted_fullname, inserted_id_number, inserted_dob):
     compare_results = []
+
+    start_time = datetime.now()
     image_path = download_img(image_url)
+    download_time = datetime.now() - start_time
+    print(f">>>>>>>>>>>>>> Downloading image time is {download_time} s <<<<<<<<<<<<<<<<<<<<")
 
     image = cv2.imread(image_path)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    # image = scale_image(image)
 
-    extract_results = main(image)
-    print(extract_results)
+    extract_results = main(image, image_url, message_extractor, info_extractor)
     fullname = extract_results['fullname'].title()
     id_number = extract_results['id_number']
     dob = extract_results['dob']
@@ -113,45 +139,45 @@ def health_check():
 
 @app.route('/check_info_message', methods=['POST'])
 def get_label_loan():
-    try:
-        if request.method == 'POST':
-            data = request.get_json()
-            img_url = data["image_url"]
-            inserted_fullname = data['fullname']
-            inserted_id_number = data['id_number']
-            inserted_dob = data['date_of_birth']
+    # try:
+    if request.method == 'POST':
+        data = request.get_json()
+        img_url = data["image_url"]
+        inserted_fullname = data['fullname']
+        inserted_id_number = data['id_number']
+        inserted_dob = data['date_of_birth']
 
-            try:
-                result_check_message = main_compare(img_url,
-                                                    inserted_fullname,
-                                                    inserted_id_number,
-                                                    inserted_dob)
-                result = {
-                    "info_check_result": result_check_message[1],
-                    "compare_results": result_check_message[0],
-                    "extracted_info": result_check_message[2],
-                    "response_code": 200,
-                    "mess": "Success",
-                }
-                logger.info(f'{str(data)} - {str(result)}')
-                return result
-            except Exception as e:
-                print(e)
-                logger.error(f'{str(data)} - {str({"response_code_code": 500, "mess": "Server Error"})}')
-                print("SERVER ERROR")
-                return jsonify({
-                    "response_code": 500,
-                    "mess": "Server Error"
-                })
-    except:
-        logger.error(f'{str({"status_code": 400, "message": "Bad Request"})}')
-        print("BAD REQUEST")
-        return jsonify({
-            "response_code": 400,
-            "mess": "Bad Request"
-        })
-    finally:
-        delete_all_folder_files("./tmp")
+        # try:
+        result_check_message = main_compare(img_url,
+                                            inserted_fullname,
+                                            inserted_id_number,
+                                            inserted_dob)
+        result = {
+            "info_check_result": result_check_message[1],
+            "compare_results": result_check_message[0],
+            "extracted_info": result_check_message[2],
+            "response_code": 200,
+            "mess": "Success",
+        }
+        logger.info(f'{str(data)} - {str(result)}')
+        return result
+            # except Exception as e:
+            #     print(e)
+            #     logger.error(f'{str(data)} - {str({"response_code_code": 500, "mess": "Server Error"})}')
+            #     print("SERVER ERROR")
+            #     return jsonify({
+            #         "response_code": 500,
+            #         "mess": "Server Error"
+            #     })
+    # except:
+    #     logger.error(f'{str({"status_code": 400, "message": "Bad Request"})}')
+    #     print("BAD REQUEST")
+    #     return jsonify({
+    #         "response_code": 400,
+    #         "mess": "Bad Request"
+    #     })
+    # finally:
+    #     delete_all_folder_files("./tmp")
 
 
 if __name__ == '__main__':

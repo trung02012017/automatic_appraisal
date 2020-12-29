@@ -329,6 +329,7 @@ if __name__ == '__main__':
     other_types = (23, 126, 127, 128, 129, 130, 131, 132, 142, 143, 144, 145, 146)
     vr = (12, 35, 70)
     vehicle_types = 141
+    message_1414_types = (192, 193)
     conn_los = connect_los_sql_db()
 
     id_card_query = "select loan.LoanBriefId as loan_id, " \
@@ -340,9 +341,9 @@ if __name__ == '__main__':
                     "inner join (select * from LoanBriefFiles " \
                     "where Status != 0 " \
                     "and IsDeleted = 0 " \
-                    "and CreateAt > '2020-09-01' " \
-                    "and CreateAt < '2020-12-01' " \
-                    f"and  TypeId in {id_card_types}) loan_file " \
+                    "and CreateAt > '2020-01-01' " \
+                    "and CreateAt < '2020-12-31' " \
+                    f"and  TypeId in {message_1414_types}) loan_file " \
                     "on loan.LoanBriefId = loan_file.LoanBriefId " \
                     "order by  loan.LoanBriefId desc" \
 
@@ -356,6 +357,6 @@ if __name__ == '__main__':
 
         image_url = get_url(file_path, s3_status, mecash_id)
         print(image_url)
-        # download_img_by_url(image_url, "/home/trungtq/Documents/automatic_disbursement/images/vehicle_registration")
+        download_img_by_url(image_url, "/home/trungtq/Documents/automatic_appraisal/images/info_message_1414")
 
 

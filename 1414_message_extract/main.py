@@ -1,22 +1,11 @@
 import cv2
-import os
-import re
-import string
 import pytesseract
 
 import numpy as np
 
-from unidecode import unidecode
+from PIL import Image
 from datetime import datetime
-
-
-regex = {
-    "date": r"\d{1,2}/\d{2}/\d{4}",
-    "fullname": [r"[\s:]*Ho\sten[:]\s*['AĂÂÁẮẤÀẰẦẢẲẨÃẴẪẠẶẬĐEÊÉẾÈỀẺỂẼỄẸỆIÍÌỈĨỊOÔƠÓỐỚÒỒỜỎỔỞÕỖỠỌỘỢUƯÚỨÙỪỦỬŨỮỤỰYÝỲỶỸỴ"
-                 r"aăâáắấàằầảẳẩãẵẫạặậđeêéếèềẻểẽễẹệiíìỉĩịoôơóốớòồờỏổởõỗỡọộợuưúứùừủửũữụựyýỳỷỹỵA-Zaa-z\s]+[,.;(]{0,1}\s*",
-                 r"[\s:]*Ho\sva\sten[:]\s*['AĂÂÁẮẤÀẰẦẢẲẨÃẴẪẠẶẬĐEÊÉẾÈỀẺỂẼỄẸỆIÍÌỈĨỊOÔƠÓỐỚÒỒỜỎỔỞÕỖỠỌỘỢUƯÚỨÙỪỦỬŨỮỤỰYÝỲỶỸỴ"
-                 r"aăâáắấàằầảẳẩãẵẫạặậđeêéếèềẻểẽễẹệiíìỉĩịoôơóốớòồờỏổởõỗỡọộợuưúứùừủửũữụựyýỳỷỹỵA-Zaa-z\s]+[,.;(]{0,1}\s*"]
-}
+from components import MessageExtractor, InfoExtractor
 
 
 def rotate_img(im):
@@ -50,167 +39,75 @@ def pre_process_2(im):
     return im
 
 
-def extract_text_1(im):
-    im = pre_process_1(im)
-    text_preprocessed = pytesseract.image_to_string(im, lang='vie', config='--oem 3 --psm 1')
-    final_text_preprocessed = [line for line in text_preprocessed.split('\n') if line.strip() != '']
-
-    return final_text_preprocessed, im
-
-
-def extract_text_2(im):
-    im = pre_process_2(im)
-    text_preprocessed = pytesseract.image_to_string(im, lang='vie', config='--oem 3 --psm 1')
-    final_text_preprocessed = [line for line in text_preprocessed.split('\n') if line.strip() != '']
-
-    return final_text_preprocessed, im
+def extract_text(im):
+    # im = pre_process_1(im)
+    try:
+        text_preprocessed = pytesseract.image_to_string(im, lang='vie', config='--oem 3 --psm 3')
+        final_text_preprocessed = [line for line in text_preprocessed.split('\n') if line.strip() != '']
+        return final_text_preprocessed, im
+    except pytesseract.pytesseract.TesseractError as e:
+        print(e)
+        return "", im
 
 
-def extract_full_name(extracted_text):
-    text = unidecode(" ".join(extracted_text)).replace(";", ":")
+def main(im: np.ndarray, image_url: str, message_extractor: MessageExtractor, info_extractor: InfoExtractor):
 
-    for re_fullname in regex['fullname']:
-        fullname_string = re.findall(re_fullname, text)
-        if len(fullname_string) == 0:
-            continue
-        fullname = fullname_string[-1].strip().split(":")[-1].strip()
-        if len(fullname.strip()) == 0:
-            continue
-        fullname = " ".join([w for w in fullname.split(" ") if w[0].isupper()])
-        fullname = unidecode(fullname).translate(str.maketrans('', '', string.punctuation))
-        return fullname
-    return ""
+    start_time = datetime.now()
+    boxes = message_extractor.main_extract(image_url)
+    extract_box_time = datetime.now() - start_time
+    print(f">>>>>>>>>>>>>> Extract box time is {extract_box_time} s <<<<<<<<<<<<<<<<<<<<")
 
+    for i, box in enumerate(boxes):
+        # preprocess 1
+        box_im = im[box[1]:box[3], box[0]:box[2], :]
+        start_time = datetime.now()
+        extracted_text_1, im_1 = extract_text(box_im)
+        extract_text_time = datetime.now() - start_time
+        print(f">>>>>>>>>>>>>> Extract text time is {extract_text_time} s <<<<<<<<<<<<<<<<<<<<")
+        fullname_1 = info_extractor.extract_full_name(extracted_text_1)
+        extracted_dates_1 = info_extractor.extract_date_new(extracted_text_1)
+        dob_1 = extracted_dates_1[0]
+        issue_date_1 = extracted_dates_1[1]
+        id_card_1 = info_extractor.extract_id_card_new(extracted_text_1)
 
-def extract_date_new(extracted_text):
-    final_dates = []
-    extracted_text = " ".join(extracted_text).replace(" ", "")
-    extracted_dates = re.findall(regex['date'], extracted_text)
-    extracted_dates = list(reversed(extracted_dates))
-
-    for i, date_string in enumerate(extracted_dates):
-        try:
-            date_ = datetime.strptime(date_string, "%d/%m/%Y")
-        except ValueError:
-            continue
-        if 18 <= datetime.now().year - date_.year <= 80:
-            final_dates.append(date_string)
-            if i - 1 >= 0:
-                final_dates.append(extracted_dates[i - 1])
-            else:
-                final_dates.append("")
-            return final_dates
-        else:
+        if all([element == "" for element in [fullname_1, dob_1, issue_date_1, id_card_1]]):
             continue
 
-    return ["", ""]
-
-
-def extract_date(extracted_text):
-    extracted_dates = []
-    for line in extracted_text:
-        found_dob = re.findall(regex['date'], line)
-        if len(found_dob) == 0:
-            continue
-        date_string = found_dob[0]
-
-        try:
-            date_dob = datetime.strptime(date_string, "%d/%m/%Y")
-
-            if len(extracted_dates) == 0:
-                if 18 <= datetime.now().year - date_dob.year <= 80:
-                    extracted_dates.append(date_string)
-                else:
-                    extracted_dates.append("")
-            else:
-                if 0 <= datetime.now().year - date_dob.year <= 15:
-                    extracted_dates.append(date_string)
-                else:
-                    extracted_dates.append("")
-        except ValueError:
-            print(date_string)
-            print("wrong format for date")
-            extracted_dates.append("")
-
-        if len(extracted_dates) == 2:
-            return extracted_dates
-
-    for _ in range(2):
-        extracted_dates.append("")
-        if len(extracted_dates) == 2:
-            return extracted_dates
-
-
-def extract_id_card_new(extracted_text):
-    extracted_text = " ".join(extracted_text).replace("'", "")
-
-    regex_1_id = r"(cuoc[:]*\d{12}[,;.]*)|(cuoc[:]*\d{9}[,;.]*)|(CMT[:]*\d{12}[,;.]*)" \
-                 r"|(CMT[:]*\d{9}[,;.]*)|(to[:]*\d{12}[,;.]*)|(to[:]*\d{9}[,;.]*)"
-    regex_2_id = r"([\s:o]\d{12}[,;.])|([\s:o]\d{9}[,;.])"
-    id_numbers = re.findall(regex_1_id, extracted_text.replace(" ", ""))
-    if len(id_numbers) == 0:
-        id_numbers = re.findall(regex_2_id, extracted_text)
-        if len(id_numbers) == 0:
-            return ""
-        else:
-            id_number = [_ for _ in id_numbers[0] if len(_) > 0][0]
-            id_number = id_number.translate(str.maketrans('', '', string.punctuation)).replace(" ", "")
-            id_number = "".join([c for c in id_number if c.isdigit()])
-            return id_number
-    else:
-        id_number = [_ for _ in id_numbers[-1] if len(_) > 0][0]
-        id_number = id_number.translate(str.maketrans('', '', string.punctuation)).replace(" ", "")
-        id_number = "".join([c for c in id_number if c.isdigit()])
-        return id_number
-
-
-def extract_id_card(extracted_text):
-    for line in extracted_text:
-        id_number = re.findall(regex['id_card'], line)
-
-        if len(id_number) > 0:
-            id_number = [_ for _ in id_number[0] if len(_) > 0][0]
-            id_number = id_number.translate(str.maketrans('', '', string.punctuation)).replace(" ", "")
-            id_number = "".join([c for c in id_number if not c.isalpha()])
-            return id_number
-    return ""
-
-
-def main(im):
-
-    # preprocess 1
-    extracted_text_1, im_1 = extract_text_1(im)
-    fullname_1 = extract_full_name(extracted_text_1)
-    extracted_dates_1 = extract_date_new(extracted_text_1)
-    dob_1 = extracted_dates_1[0]
-    issue_date_1 = extracted_dates_1[1]
-    id_card_1 = extract_id_card_new(extracted_text_1)
-
-    # preprocess 2
-    extracted_text_2, im_2 = extract_text_2(im)
-    fullname_2 = extract_full_name(extracted_text_2)
-    extracted_dates_2 = extract_date_new(extracted_text_2)
-    dob_2 = extracted_dates_2[0]
-    issue_date_2 = extracted_dates_2[1]
-    id_card_2 = extract_id_card_new(extracted_text_2)
-
-    print(extracted_text_1)
-    print(extracted_text_2)
+        return {
+            "fullname": fullname_1,
+            "id_number": id_card_1,
+            "dob": dob_1,
+            "issue_date": issue_date_1
+        }
 
     return {
-        "fullname": fullname_1 if len(fullname_1) >= len(fullname_2) else fullname_2,
-        "id_number": id_card_1 if len(id_card_1) >= len(id_card_2) else id_card_2,
-        "dob": dob_1 if len(dob_1) >= len(dob_2) else dob_2,
-        "issue_date": issue_date_1 if len(issue_date_1) >= len(issue_date_2) else issue_date_2
+        "fullname": "",
+        "id_number": "",
+        "dob": "",
+        "issue_date": ""
     }
 
+        # preprocess 2
+        # extracted_text_2, im_2 = extract_text_2(im)
+        # fullname_2 = extract_full_name(extracted_text_2)
+        # extracted_dates_2 = extract_date_new(extracted_text_2)
+        # dob_2 = extracted_dates_2[0]
+        # issue_date_2 = extracted_dates_2[1]
+        # id_card_2 = extract_id_card_new(extracted_text_2)
+        #
+        # print(extracted_text_1)
+        # print(extracted_text_2)
 
-# if __name__ == '__main__':
-#
-#     from pprint import pprint
-#
-#     im = cv2.imread("/home/trungtq/Desktop/failed_images/9137b3b7-d75f-4c2a-9a51-6f95cc3b0cc6.jpg")
-#     extracted_info, im = main(im)
-#     pprint(extracted_info)
-#     cv2.imshow("a", im)
-#     cv2.waitKey(0)
+        # return {
+        #     "fullname": fullname_1 if len(fullname_1) >= len(fullname_2) else fullname_2,
+        #     "id_number": id_card_1 if len(id_card_1) >= len(id_card_2) else id_card_2,
+        #     "dob": dob_1 if len(dob_1) >= len(dob_2) else dob_2,
+        #     "issue_date": issue_date_1 if len(issue_date_1) >= len(issue_date_2) else issue_date_2
+        # }
+
+
+if __name__ == '__main__':
+    im = cv2.imread("/home/trungtq/Desktop/failed_images/f83f4db6-d9b2-4ffd-9c85-50baea703cf6.jpg")
+    angle = pytesseract.image_to_string(im, config='--psm 0')
+
+    print(angle)
