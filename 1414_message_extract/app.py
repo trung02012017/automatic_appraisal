@@ -17,14 +17,14 @@ from flask_eureka import Eureka, eureka_bp
 from main import main
 
 app = Flask(__name__)
-# app.register_blueprint(eureka_bp)
-# app.config["SERVICE_NAME"] = "1414_MESSAGE_VALIDATE"
-# app.config["EUREKA_SERVICE_URL"] = "http://172.16.10.111:8761"
-# app.config["EUREKA_INSTANCE_PORT"] = 10200
-# app.config["EUREKA_INSTANCE_HOSTNAME"] = "172.16.10.111"
-# app.config["EUREKA_HEARTBEAT"] = 60
-# eureka = Eureka(app)
-# eureka.register_service(name="1414_MESSAGE_VALIDATE", vip_address="1414_MESSAGE_VALIDATE")
+app.register_blueprint(eureka_bp)
+app.config["SERVICE_NAME"] = "1414_MESSAGE_VALIDATE"
+app.config["EUREKA_SERVICE_URL"] = "http://172.16.10.111:8761"
+app.config["EUREKA_INSTANCE_PORT"] = 10200
+app.config["EUREKA_INSTANCE_HOSTNAME"] = "172.16.10.111"
+app.config["EUREKA_HEARTBEAT"] = 60
+eureka = Eureka(app)
+eureka.register_service(name="1414_MESSAGE_VALIDATE", vip_address="1414_MESSAGE_VALIDATE")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
