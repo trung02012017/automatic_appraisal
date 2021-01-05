@@ -27,7 +27,8 @@ class MessageExtractor:
         try:
 
             headers = {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'app-id': 'appraisal_auto_check'
             }
 
             response = requests.request("POST", self.message_detect_url, headers=headers, json={"image": image_url})

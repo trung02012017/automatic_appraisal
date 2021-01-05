@@ -62,6 +62,7 @@ def main(im: np.ndarray, image_url: str, message_extractor: MessageExtractor, in
         box_im = im[box[1]:box[3], box[0]:box[2], :]
         start_time = datetime.now()
         extracted_text_1, im_1 = extract_text(box_im)
+        print(extracted_text_1)
         extract_text_time = datetime.now() - start_time
         print(f">>>>>>>>>>>>>> Extract text time is {extract_text_time} s <<<<<<<<<<<<<<<<<<<<")
         fullname_1 = info_extractor.extract_full_name(extracted_text_1)

@@ -47,6 +47,30 @@ def extract_text(im):
     return final_text_preprocessed
 
 
+def test_api_extract_message(request):
+    import requests
+
+    url = "http://18.138.46.64:8082/message-validate/check_info_message"
+
+    headers = {
+        'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhaS10ZXN0IiwiYXV0aG9yaXRpZXMiOlsiUk9MRV9DQUNfVE9PT'
+                         'F9WRVJJRlkiLCJST0xFX0NPTVBVVEVSX1ZJU0lPTl9BRE1JTiIsIlJPTEVfQ09NUFVURVJfVklTSU9OX0VLWUNfVj'
+                         'IiLCJST0xFX0NPTVBVVEVSX1ZJU0lPTl9OQVRfRVhUUkFDVE9SIiwiUk9MRV9DT05UUkFDVF9FWFRSQUNUX0FETUl'
+                         'OIiwiUk9MRV9DUkFXTEVSX1RPT0xfQURNSU4iLCJST0xFX0NSRURJVF9TQ09SRV9BRE1JTiIsIlJPTEVfRkFDRUJP'
+                         'T0tfSU5GT19BRE1JTiIsIlJPTEVfRkFDRUJPT0tfU0NPUkVfQURNSU4iLCJST0xFX0lERU5USUZZX1RPT0xfQURNS'
+                         'U4iLCJST0xFX0xFQURfU0NPUkVfQURNSU4iLCJST0xFX01FU1NBR0VfVkFMSURBVEUiLCJST0xFX1BSRURJQ1RfUF'
+                         'JJQ0VfQURNSU4iLCJST0xFX1BST0RVQ1RfSU5GT19BRE1JTiIsIlJPTEVfVEFYX1RPT0xfQURNSU4iLCJST0xFX1'
+                         'RPUF9GUklFTkRfQURNSU4iLCJST0xFX1RSQUNLX0xPQ0FUSU9OX0FETUlOIiwiUk9MRV9VU0VSX0lOVEVSRVNUX'
+                         '0FETUlOIiwiUk9MRV9WRUhJQ0xFX0RBVEFfQU1ESU4iXSwiaWF0IjoxNjA5MTQ0OTEzLCJleHAiOjE2MDkyMzEzM'
+                         'TN9.Ih6BcmaB9ebzl_C5vwpx9svXqS5nnsWA2eNQA-xPbxkZuXD16L9gPbsm9dpkFVCHavn98tqvD27dtSnMe49eYw',
+        'Content-Type': 'application/json'
+    }
+
+    response = requests.request("POST", url, headers=headers, json=request)
+
+    return response.json()
+
+
 if __name__ == '__main__':
     import ast
     from pprint import pprint
@@ -66,8 +90,18 @@ if __name__ == '__main__':
         dict_request = ast.literal_eval(request)
         dict_response = ast.literal_eval(response)
 
-        if elements[0].startswith('2020-12-28') and dict_response['info_check_result'] is False:
-            pprint(dict_request)
+        if elements[0].startswith('2020-12-28') and dict_response['info_check_result'] is True:
+            new_response = test_api_extract_message(dict_request)
+            print(dict_request['image_url'])
+            if new_response['compare_results'] is None:
+                print("New response fail")
+                continue
+
+            pprint(f"result_check_compare: {[dict_response['compare_results'][k] == new_response['compare_results'][k] for k in dict_response['compare_results'].keys()]}")
+            print()
+            pprint(f"old_result_extract: {dict_response['extracted_info']}")
+            pprint(f"new_result_extract: {new_response['extracted_info']}")
+
             print("==========================")
 
     print(count_true_check)
